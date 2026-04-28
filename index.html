@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點餐</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f2f7; color: #1c1c1e; min-height: 100vh; }
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .session-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .deadline-tag { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .deadline-tag.open   { background: #e3f5e9; color: #1a7f3c; }
+    .deadline-tag.urgent { background: #ffeaea; color: #d93025; }
+    .deadline-tag.closed { background: #f0f0f0; color: #888; }
+    .section-title { font-size: 15px; font-weight: 600; color: #555; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
+    .field-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+    input[type="text"] { width: 100%; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 11px 13px; font-size: 16px; outline: none; transition: border-color .2s; }
+    input[type="text"]:focus { border-color: #3b82f6; }
+    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+    .item-row + .item-row { border-top: 1px solid #f5f5f5; }
+    .item-info { flex: 1; }
+    .item-name { font-size: 15px; font-weight: 500; }
+    .item-price { font-size: 13px; color: #888; margin-top: 2px; }
+    .qty-wrap { display: flex; align-items: center; gap: 10px; }
+    .qty-btn { width: 30px; height: 30px; border: 1.5px solid #d0d0d0; background: #fafafa; border-radius: 50%; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #333; transition: background .15s; }
+    .qty-btn:active { background: #e8e8e8; }
+    .qty-num { min-width: 22px; text-align: center; font-size: 16px; font-weight: 600; }
+    .qty-num.nonzero { color: #3b82f6; }
+    .submit-btn { width: 100%; background: #3b82f6; color: #fff; border: none; border-radius: 14px; padding: 15px; font-size: 17px; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .submit-btn:disabled { background: #b0c4e8; cursor: not-allowed; }
+    .submit-btn:not(:disabled):active { background: #2563eb; }
+    .msg { padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; margin-top: 8px; text-align: center; }
+    .msg.error   { background: #fef0f0; color: #d93025; }
+    .msg.success { background: #e3f5e9; color: #1a7f3c; }
+    .msg.info    { background: #eef3ff; color: #3b5bdb; }
+    .closed-banner { background: #f8d7da; color: #842029; border-radius: 12px; padding: 14px 16px; text-align: center; font-weight: 600; font-size: 15px; margin-bottom: 12px; }
+    .summary-list { font-size: 14px; line-height: 2; }
+    .loading { text-align: center; padding: 60px 20px; color: #888; font-size: 15px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #888; }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="loading">載入中…</div>
+</div>
+
+<script>
+  // ── 設定：填入你的 Firebase Realtime Database URL ──────────────────────────
+  const DB_URL = 'https://onlinemenu-57cf4-default-rtdb.firebaseio.com';
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const CATEGORY_LABELS = {
+    drink: '🧋 飲料',
+    food:  '🍰 下午茶',
+  };
+
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('s');
+  let sessionData = null;
+  let isClosed = false;
+  const quantities = {};
+
+  // ── Bootstrap ──────────────────────────────────────────────────────────────
+  async function init() {
+    if (!sessionId) {
+      setApp(emptyState('🔗', '請使用正確的點餐連結'));
+      return;
+    }
+    try {
+      const res = await fetch(`${DB_URL}/orders/${sessionId}.json`);
+      sessionData = await res.json();
+    } catch (e) {
+      setApp(emptyState('⚠️', '網路錯誤，請稍後重試'));
+      return;
+    }
+
+    if (!sessionData?.meta) {
+      setApp(emptyState('🔍', '找不到此點餐，請確認連結'));
+      return;
+    }
+
+    const { meta } = sessionData;
+    isClosed = meta.status === 'closed' ||
+               (meta.deadline && Math.floor(Date.now() / 1000) > meta.deadline);
+    renderPage();
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  function renderPage() {
+    const { meta, items } = sessionData;
+    const dl = deadlineInfo(meta.deadline);
+
+    let html = `
+      <div class="card">
+        <div class="session-title">${esc(meta.title || '點餐')}</div>
+        ${dl ? `<span class="deadline-tag ${dl.cls}">${esc(dl.text)}</span>` : ''}
+      </div>
+    `;
+
+    if (isClosed) {
+      html += `<div class="closed-banner">⛔ 點餐已截止</div>`;
+    } else {
+      html += `
+        <div class="card">
+          <div class="field-label">你的名字</div>
+          <input type="text" id="inp-name" placeholder="輸入姓名" autocomplete="off">
+        </div>
+      `;
+    }
+
+    // Menu categories
+    if (items) {
+      for (const [catKey, catItems] of Object.entries(items)) {
+        if (!catItems || typeof catItems !== 'object') continue;
+        const label = CATEGORY_LABELS[catKey] || catKey;
+        html += `<div class="card"><div class="section-title">${esc(label)}</div>`;
+        for (const [itemId, item] of Object.entries(catItems)) {
+          const fullId = `${catKey}__${itemId}`;
+          quantities[fullId] = 0;
+          html += `
+            <div class="item-row">
+              <div class="item-info">
+                <div class="item-name">${esc(item.name)}</div>
+                ${item.price ? `<div class="item-price">$${item.price}</div>` : ''}
+              </div>
+              ${isClosed ? '' : `
+              <div class="qty-wrap">
+                <button class="qty-btn" onclick="changeQty('${fullId}',-1)">−</button>
+                <span class="qty-num" id="q-${fullId}">0</span>
+                <button class="qty-btn" onclick="changeQty('${fullId}',1)">+</button>
+              </div>`}
+            </div>
+          `;
+        }
+        html += `</div>`;
+      }
+    }
+
+    if (!isClosed) {
+      html += `
+        <div class="card">
+          <div class="field-label">備註（選填）</div>
+          <input type="text" id="inp-note" placeholder="例：少冰、去冰、不辣…">
+        </div>
+        <button class="submit-btn" id="btn-submit" onclick="submitOrder()">送出訂單</button>
+        <div id="msg-area"></div>
+      `;
+    }
+
+    setApp(html);
+    setupNameField();
+  }
+
+  // ── Name field: auto-load previous submission ──────────────────────────────
+  function setupNameField() {
+    const inp = document.getElementById('inp-name');
+    if (!inp) return;
+    const saved = localStorage.getItem('lunch_order_name');
+    if (saved) inp.value = saved;
+
+    inp.addEventListener('change', () => {
+      const name = inp.value.trim();
+      if (!name) return;
+      const prev = sessionData?.submissions?.[name];
+      if (prev) {
+        // Pre-fill quantities from previous submission
+        for (const o of (prev.orders || [])) {
+          const fullId = `${o.cat}__${o.id}`;
+          if (quantities.hasOwnProperty(fullId)) {
+            quantities[fullId] = o.qty;
+            const el = document.getElementById(`q-${fullId}`);
+            if (el) { el.textContent = o.qty; el.classList.toggle('nonzero', o.qty > 0); }
+          }
+        }
+        if (prev.note && document.getElementById('inp-note')) {
+          document.getElementById('inp-note').value = prev.note;
+        }
+        document.getElementById('btn-submit').textContent = '更新訂單';
+        showMsg('已載入你的上筆訂單，可直接修改後更新', 'info');
+      }
+    });
+  }
+
+  // ── Quantity control ────────────────────────────────────────────────────────
+  function changeQty(fullId, delta) {
+    quantities[fullId] = Math.max(0, (quantities[fullId] || 0) + delta);
+    const el = document.getElementById(`q-${fullId}`);
+    if (el) {
+      el.textContent = quantities[fullId];
+      el.classList.toggle('nonzero', quantities[fullId] > 0);
+    }
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  async function submitOrder() {
+    const nameEl = document.getElementById('inp-name');
+    const name = nameEl?.value.trim();
+    if (!name) { showMsg('請填寫姓名', 'error'); nameEl?.focus(); return; }
+
+    const orders = [];
+    for (const [fullId, qty] of Object.entries(quantities)) {
+      if (qty <= 0) continue;
+      const [cat, itemId] = fullId.split('__');
+      const item = sessionData.items?.[cat]?.[itemId];
+      if (item) orders.push({ id: itemId, cat, name: item.name, qty, price: item.price || 0 });
+    }
+    if (orders.length === 0) { showMsg('請至少選一樣', 'error'); return; }
+
+    const note = document.getElementById('inp-note')?.value.trim() || '';
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = '送出中…';
+
+    const safeKey = name.replace(/[.#$/\[\]]/g, '_');
+    try {
+      await fetch(`${DB_URL}/orders/${sessionId}/submissions/${encodeURIComponent(safeKey)}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submitted_at: Math.floor(Date.now() / 1000), orders, note }),
+      });
+      localStorage.setItem('lunch_order_name', name);
+      const summary = orders.map(o => `${o.name} ×${o.qty}`).join('、');
+      showMsg(`✅ 訂單已送出！\n${name}：${summary}${note ? `\n備註：${note}` : ''}`, 'success');
+      btn.textContent = '已送出';
+    } catch (e) {
+      showMsg('送出失敗，請檢查網路後重試', 'error');
+      btn.disabled = false;
+      btn.textContent = '送出訂單';
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function deadlineInfo(ts) {
+    if (!ts) return null;
+    const now = Math.floor(Date.now() / 1000);
+    const d = new Date(ts * 1000);
+    const timeStr = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    if (now > ts) return { text: '已截止', cls: 'closed' };
+    const left = ts - now;
+    if (left < 3600) {
+      const m = Math.ceil(left / 60);
+      return { text: `截止 ${timeStr}（剩 ${m} 分鐘）`, cls: 'urgent' };
+    }
+    const h = Math.floor(left / 3600);
+    const m = Math.floor((left % 3600) / 60);
+    return { text: `截止 ${timeStr}（剩 ${h} 時 ${m} 分）`, cls: 'open' };
+  }
+
+  function emptyState(icon, text) {
+    return `<div class="empty-state"><div class="icon">${icon}</div><p>${esc(text)}</p></div>`;
+  }
+
+  function setApp(html) { document.getElementById('app').innerHTML = html; }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('msg-area');
+    if (el) el.innerHTML = `<div class="msg ${type}">${text.replace(/\n/g, '<br>')}</div>`;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>
