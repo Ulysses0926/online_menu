@@ -8,23 +8,49 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f2f2f7; color: #1c1c1e; min-height: 100vh; }
     .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+    /* ── Shared ── */
     .card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .loading { text-align: center; padding: 60px 20px; color: #888; font-size: 15px; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #888; }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* ── Landing page ── */
+    .site-header { text-align: center; padding: 28px 0 8px; }
+    .site-header h1 { font-size: 22px; font-weight: 700; }
+    .site-header p  { font-size: 14px; color: #888; margin-top: 4px; }
+    .current-card { border: 2px solid #3b82f6; }
+    .current-label { font-size: 12px; font-weight: 600; color: #3b82f6; letter-spacing: .5px; margin-bottom: 8px; }
+    .current-title { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+    .go-btn { display: block; width: 100%; background: #3b82f6; color: #fff; border: none; border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 600; text-align: center; text-decoration: none; margin-top: 14px; cursor: pointer; }
+    .go-btn:active { background: #2563eb; }
+    .go-btn.closed { background: #9ca3af; cursor: default; }
+    .section-heading { font-size: 13px; font-weight: 600; color: #888; letter-spacing: .5px; margin: 20px 0 8px; text-transform: uppercase; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+    .history-item + .history-item { border-top: 1px solid #f0f0f0; }
+    .history-title { font-size: 15px; font-weight: 500; }
+    .history-date  { font-size: 12px; color: #888; margin-top: 2px; }
+    .badge { font-size: 12px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .badge.open   { background: #dbeafe; color: #1d4ed8; }
+    .badge.closed { background: #f0f0f0; color: #888; }
+    .history-link { font-size: 13px; color: #3b82f6; text-decoration: none; margin-left: 8px; }
+
+    /* ── Order form ── */
     .session-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
     .deadline-tag { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
     .deadline-tag.open   { background: #e3f5e9; color: #1a7f3c; }
     .deadline-tag.urgent { background: #ffeaea; color: #d93025; }
     .deadline-tag.closed { background: #f0f0f0; color: #888; }
-    .section-title { font-size: 15px; font-weight: 600; color: #555; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
     .field-label { font-size: 13px; color: #888; margin-bottom: 6px; }
     input[type="text"] { width: 100%; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 11px 13px; font-size: 16px; outline: none; transition: border-color .2s; }
     input[type="text"]:focus { border-color: #3b82f6; }
+    .cat-title { font-size: 15px; font-weight: 600; color: #555; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
     .item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
     .item-row + .item-row { border-top: 1px solid #f5f5f5; }
-    .item-info { flex: 1; }
     .item-name { font-size: 15px; font-weight: 500; }
     .item-price { font-size: 13px; color: #888; margin-top: 2px; }
     .qty-wrap { display: flex; align-items: center; gap: 10px; }
-    .qty-btn { width: 30px; height: 30px; border: 1.5px solid #d0d0d0; background: #fafafa; border-radius: 50%; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #333; transition: background .15s; }
+    .qty-btn { width: 30px; height: 30px; border: 1.5px solid #d0d0d0; background: #fafafa; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #333; transition: background .15s; }
     .qty-btn:active { background: #e8e8e8; }
     .qty-num { min-width: 22px; text-align: center; font-size: 16px; font-weight: 600; }
     .qty-num.nonzero { color: #3b82f6; }
@@ -36,10 +62,7 @@
     .msg.success { background: #e3f5e9; color: #1a7f3c; }
     .msg.info    { background: #eef3ff; color: #3b5bdb; }
     .closed-banner { background: #f8d7da; color: #842029; border-radius: 12px; padding: 14px 16px; text-align: center; font-weight: 600; font-size: 15px; margin-bottom: 12px; }
-    .summary-list { font-size: 14px; line-height: 2; }
-    .loading { text-align: center; padding: 60px 20px; color: #888; font-size: 15px; }
-    .empty-state { text-align: center; padding: 60px 20px; color: #888; }
-    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .back-link { display: inline-block; font-size: 14px; color: #3b82f6; text-decoration: none; margin-bottom: 12px; }
   </style>
 </head>
 <body>
@@ -48,27 +71,126 @@
 </div>
 
 <script>
-  // ── 設定：填入你的 Firebase Realtime Database URL ──────────────────────────
   const DB_URL = 'https://onlinemenu-57cf4-default-rtdb.firebaseio.com';
-  // ───────────────────────────────────────────────────────────────────────────
 
-  const CATEGORY_LABELS = {
-    drink: '🧋 飲料',
-    food:  '🍰 下午茶',
+  const CATEGORY_EMOJI = {
+    drink: '🧋', food: '🍰', 冷盤: '🥗', 炒類: '🍳', 小菜: '🥢',
+    熱炒: '🔥', 湯類: '🍲', 鐵板三杯: '🍖', 炸類: '🍤', 燒烤: '🔥',
   };
 
   const params = new URLSearchParams(location.search);
   const sessionId = params.get('s');
+
+  // ── Router ──────────────────────────────────────────────────────────────────
+  if (sessionId) {
+    initOrderPage();
+  } else {
+    initLandingPage();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LANDING PAGE
+  // ══════════════════════════════════════════════════════════════════════════
+  async function initLandingPage() {
+    try {
+      // Fetch current session ID from Firebase config
+      const [cfgRes, allRes] = await Promise.all([
+        fetch(`${DB_URL}/config/current_session.json`),
+        fetch(`${DB_URL}/orders.json?shallow=true`),
+      ]);
+      const currentId = await cfgRes.json();   // string or null
+      const allKeys   = await allRes.json();   // { "20260428-2053": true, ... }
+
+      // Fetch metadata for current session
+      let currentMeta = null;
+      if (currentId) {
+        const metaRes = await fetch(`${DB_URL}/orders/${currentId}/meta.json`);
+        currentMeta = await metaRes.json();
+      }
+
+      // Sort all sessions newest-first
+      const sessionIds = allKeys ? Object.keys(allKeys).sort().reverse() : [];
+
+      // Fetch meta for recent sessions (up to 5, excluding current)
+      const otherIds = sessionIds.filter(id => id !== currentId).slice(0, 5);
+      const otherMetas = await Promise.all(
+        otherIds.map(id => fetch(`${DB_URL}/orders/${id}/meta.json`).then(r => r.json()))
+      );
+
+      renderLanding(currentId, currentMeta, otherIds, otherMetas);
+    } catch (e) {
+      setApp(emptyState('⚠️', '載入失敗，請稍後重試'));
+    }
+  }
+
+  function renderLanding(currentId, currentMeta, otherIds, otherMetas) {
+    const now = Math.floor(Date.now() / 1000);
+
+    let html = `
+      <div class="site-header">
+        <h1>🍱 點餐系統</h1>
+        <p>選擇目前開放的點餐</p>
+      </div>
+    `;
+
+    // Current session
+    if (currentId && currentMeta) {
+      const isOpen = currentMeta.status !== 'closed' &&
+                     (!currentMeta.deadline || now < currentMeta.deadline);
+      const dl = deadlineInfo(currentMeta.deadline);
+      html += `
+        <div class="card current-card">
+          <div class="current-label">🟢 目前開放</div>
+          <div class="current-title">${esc(currentMeta.title || '點餐')}</div>
+          ${dl ? `<span class="deadline-tag ${dl.cls}">${esc(dl.text)}</span>` : ''}
+          <a class="go-btn ${isOpen ? '' : 'closed'}" href="/?s=${esc(currentId)}">
+            ${isOpen ? '立即點餐 →' : '已截止'}
+          </a>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="card" style="text-align:center;padding:24px;color:#888">
+          目前沒有開放中的點餐
+        </div>
+      `;
+    }
+
+    // History
+    if (otherIds.length > 0) {
+      html += `<div class="section-heading">歷史記錄</div><div class="card">`;
+      otherIds.forEach((id, i) => {
+        const meta = otherMetas[i];
+        if (!meta) return;
+        const isOpen = meta.status !== 'closed' && (!meta.deadline || now < meta.deadline);
+        const dateStr = id.replace(/(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/, '$1/$2/$3 $4:$5');
+        html += `
+          <div class="history-item">
+            <div>
+              <div class="history-title">${esc(meta.title || '點餐')}</div>
+              <div class="history-date">${esc(dateStr)}</div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <span class="badge ${isOpen ? 'open' : 'closed'}">${isOpen ? '開放' : '已截止'}</span>
+              <a class="history-link" href="/?s=${esc(id)}">進入</a>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    setApp(html);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ORDER FORM PAGE
+  // ══════════════════════════════════════════════════════════════════════════
   let sessionData = null;
   let isClosed = false;
   const quantities = {};
 
-  // ── Bootstrap ──────────────────────────────────────────────────────────────
-  async function init() {
-    if (!sessionId) {
-      setApp(emptyState('🔗', '請使用正確的點餐連結'));
-      return;
-    }
+  async function initOrderPage() {
     try {
       const res = await fetch(`${DB_URL}/orders/${sessionId}.json`);
       sessionData = await res.json();
@@ -85,15 +207,15 @@
     const { meta } = sessionData;
     isClosed = meta.status === 'closed' ||
                (meta.deadline && Math.floor(Date.now() / 1000) > meta.deadline);
-    renderPage();
+    renderOrderPage();
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  function renderPage() {
+  function renderOrderPage() {
     const { meta, items } = sessionData;
     const dl = deadlineInfo(meta.deadline);
 
     let html = `
+      <a class="back-link" href="/">← 返回首頁</a>
       <div class="card">
         <div class="session-title">${esc(meta.title || '點餐')}</div>
         ${dl ? `<span class="deadline-tag ${dl.cls}">${esc(dl.text)}</span>` : ''}
@@ -111,18 +233,17 @@
       `;
     }
 
-    // Menu categories
     if (items) {
       for (const [catKey, catItems] of Object.entries(items)) {
         if (!catItems || typeof catItems !== 'object') continue;
-        const label = CATEGORY_LABELS[catKey] || catKey;
-        html += `<div class="card"><div class="section-title">${esc(label)}</div>`;
+        const emoji = CATEGORY_EMOJI[catKey] || '🍽';
+        html += `<div class="card"><div class="cat-title">${emoji} ${esc(catKey)}</div>`;
         for (const [itemId, item] of Object.entries(catItems)) {
           const fullId = `${catKey}__${itemId}`;
           quantities[fullId] = 0;
           html += `
             <div class="item-row">
-              <div class="item-info">
+              <div>
                 <div class="item-name">${esc(item.name)}</div>
                 ${item.price ? `<div class="item-price">$${item.price}</div>` : ''}
               </div>
@@ -154,19 +275,16 @@
     setupNameField();
   }
 
-  // ── Name field: auto-load previous submission ──────────────────────────────
   function setupNameField() {
     const inp = document.getElementById('inp-name');
     if (!inp) return;
     const saved = localStorage.getItem('lunch_order_name');
     if (saved) inp.value = saved;
-
     inp.addEventListener('change', () => {
       const name = inp.value.trim();
       if (!name) return;
       const prev = sessionData?.submissions?.[name];
       if (prev) {
-        // Pre-fill quantities from previous submission
         for (const o of (prev.orders || [])) {
           const fullId = `${o.cat}__${o.id}`;
           if (quantities.hasOwnProperty(fullId)) {
@@ -184,17 +302,12 @@
     });
   }
 
-  // ── Quantity control ────────────────────────────────────────────────────────
   function changeQty(fullId, delta) {
     quantities[fullId] = Math.max(0, (quantities[fullId] || 0) + delta);
     const el = document.getElementById(`q-${fullId}`);
-    if (el) {
-      el.textContent = quantities[fullId];
-      el.classList.toggle('nonzero', quantities[fullId] > 0);
-    }
+    if (el) { el.textContent = quantities[fullId]; el.classList.toggle('nonzero', quantities[fullId] > 0); }
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
   async function submitOrder() {
     const nameEl = document.getElementById('inp-name');
     const name = nameEl?.value.trim();
@@ -211,8 +324,7 @@
 
     const note = document.getElementById('inp-note')?.value.trim() || '';
     const btn = document.getElementById('btn-submit');
-    btn.disabled = true;
-    btn.textContent = '送出中…';
+    btn.disabled = true; btn.textContent = '送出中…';
 
     const safeKey = name.replace(/[.#$/\[\]]/g, '_');
     try {
@@ -227,8 +339,7 @@
       btn.textContent = '已送出';
     } catch (e) {
       showMsg('送出失敗，請檢查網路後重試', 'error');
-      btn.disabled = false;
-      btn.textContent = '送出訂單';
+      btn.disabled = false; btn.textContent = '送出訂單';
     }
   }
 
@@ -240,13 +351,8 @@
     const timeStr = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
     if (now > ts) return { text: '已截止', cls: 'closed' };
     const left = ts - now;
-    if (left < 3600) {
-      const m = Math.ceil(left / 60);
-      return { text: `截止 ${timeStr}（剩 ${m} 分鐘）`, cls: 'urgent' };
-    }
-    const h = Math.floor(left / 3600);
-    const m = Math.floor((left % 3600) / 60);
-    return { text: `截止 ${timeStr}（剩 ${h} 時 ${m} 分）`, cls: 'open' };
+    if (left < 3600) return { text: `截止 ${timeStr}（剩 ${Math.ceil(left/60)} 分鐘）`, cls: 'urgent' };
+    return { text: `截止 ${timeStr}（剩 ${Math.floor(left/3600)} 時 ${Math.floor((left%3600)/60)} 分）`, cls: 'open' };
   }
 
   function emptyState(icon, text) {
@@ -257,14 +363,12 @@
 
   function showMsg(text, type) {
     const el = document.getElementById('msg-area');
-    if (el) el.innerHTML = `<div class="msg ${type}">${text.replace(/\n/g, '<br>')}</div>`;
+    if (el) el.innerHTML = `<div class="msg ${type}">${text.replace(/\n/g,'<br>')}</div>`;
   }
 
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-
-  init();
 </script>
 </body>
 </html>
