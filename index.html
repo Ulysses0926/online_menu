@@ -63,6 +63,19 @@
     .msg.info    { background: #eef3ff; color: #3b5bdb; }
     .closed-banner { background: #f8d7da; color: #842029; border-radius: 12px; padding: 14px 16px; text-align: center; font-weight: 600; font-size: 15px; margin-bottom: 12px; }
     .back-link { display: inline-block; font-size: 14px; color: #3b82f6; text-decoration: none; margin-bottom: 12px; }
+    .stats-heading { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #333; }
+    .stats-person { padding: 8px 0; font-size: 14px; border-top: 1px solid #f0f0f0; }
+    .stats-person:first-of-type { border-top: none; }
+    .stats-person-name { font-weight: 600; margin-bottom: 2px; }
+    .stats-person-items { color: #555; }
+    .stats-person-note { color: #888; font-size: 13px; }
+    .stats-divider { border: none; border-top: 1.5px solid #e8e8e8; margin: 12px 0; }
+    .stats-total-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+    .stats-total-name { color: #333; }
+    .stats-total-qty { font-weight: 600; color: #3b82f6; }
+    .copy-btn { width: 100%; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background .15s; }
+    .copy-btn:active { background: #e0e0e0; }
+    .copy-btn.copied { background: #e3f5e9; color: #1a7f3c; }
   </style>
 </head>
 <body>
@@ -224,6 +237,7 @@
 
     if (isClosed) {
       html += `<div class="closed-banner">⛔ 點餐已截止</div>`;
+      html += `<div class="card" id="stats-card"><div class="loading" style="padding:20px">載入統計中…</div></div>`;
     } else {
       html += `
         <div class="card">
@@ -273,6 +287,93 @@
 
     setApp(html);
     setupNameField();
+    if (isClosed) loadAndRenderStats();
+  }
+
+  async function loadAndRenderStats() {
+    let submissions = null;
+    try {
+      const res = await fetch(`${DB_URL}/orders/${sessionId}/submissions.json`);
+      submissions = await res.json();
+    } catch (e) {}
+
+    const card = document.getElementById('stats-card');
+    if (!card) return;
+
+    if (!submissions || Object.keys(submissions).length === 0) {
+      card.innerHTML = '<div style="color:#888;text-align:center;padding:20px">尚無人點餐</div>';
+      return;
+    }
+
+    const totals = {};
+    let peopleHtml = '';
+
+    for (const [name, data] of Object.entries(submissions)) {
+      const orders = data.orders || [];
+      orders.forEach(o => { totals[o.name] = (totals[o.name] || 0) + o.qty; });
+      const itemStr = orders.map(o => `${o.name} ×${o.qty}`).join('、');
+      peopleHtml += `
+        <div class="stats-person">
+          <div class="stats-person-name">${esc(name)}</div>
+          <div class="stats-person-items">${esc(itemStr)}</div>
+          ${data.note ? `<div class="stats-person-note">備註：${esc(data.note)}</div>` : ''}
+        </div>`;
+    }
+
+    let totalsHtml = '';
+    for (const [name, qty] of Object.entries(totals)) {
+      totalsHtml += `
+        <div class="stats-total-row">
+          <span class="stats-total-name">${esc(name)}</span>
+          <span class="stats-total-qty">×${qty}</span>
+        </div>`;
+    }
+
+    const count = Object.keys(submissions).length;
+    card.innerHTML = `
+      <div class="stats-heading">📊 點餐統計（共 ${count} 人）</div>
+      ${peopleHtml}
+      <hr class="stats-divider">
+      <div class="stats-heading">品項總計</div>
+      ${totalsHtml}
+      <button class="copy-btn" id="copy-btn" onclick="copyStats()">📋 複製結果</button>`;
+
+    window._statsSubmissions = submissions;
+    window._statsTotals = totals;
+  }
+
+  function buildStatsText() {
+    const submissions = window._statsSubmissions;
+    const totals = window._statsTotals;
+    if (!submissions) return '';
+    const { meta } = sessionData;
+    const count = Object.keys(submissions).length;
+    const lines = [`📋 ${meta.title || '點餐'} 結果`, `共 ${count} 人`, '──────────────────'];
+    for (const [name, data] of Object.entries(submissions)) {
+      const items = (data.orders || []).map(o => `${o.name}×${o.qty}`).join('、');
+      let line = `${name}：${items}`;
+      if (data.note) line += `  備註：${data.note}`;
+      lines.push(line);
+    }
+    lines.push('──────────────────', '📊 品項統計');
+    for (const [name, qty] of Object.entries(totals)) {
+      lines.push(`${name}  × ${qty}`);
+    }
+    const total = Object.values(totals).reduce((a, b) => a + b, 0);
+    lines.push('', `合計 ${total} 份`);
+    return lines.join('\n');
+  }
+
+  function copyStats() {
+    const text = buildStatsText();
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      if (!btn) return;
+      btn.textContent = '✅ 已複製';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '📋 複製結果'; btn.classList.remove('copied'); }, 2000);
+    });
   }
 
   function setupNameField() {
