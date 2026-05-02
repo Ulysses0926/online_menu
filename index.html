@@ -73,9 +73,12 @@
     .stats-total-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
     .stats-total-name { color: #333; }
     .stats-total-qty { font-weight: 600; color: #3b82f6; }
-    .copy-btn { width: 100%; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background .15s; }
+    .copy-btn { width: 100%; background: #f0f0f0; color: #333; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background .15s; }
     .copy-btn:active { background: #e0e0e0; }
     .copy-btn.copied { background: #e3f5e9; color: #1a7f3c; }
+    .copy-btn.tsv { background: #eff6ff; color: #1d4ed8; }
+    .copy-btn.tsv:active { background: #dbeafe; }
+    .copy-btn.tsv.copied { background: #e3f5e9; color: #1a7f3c; }
   </style>
 </head>
 <body>
@@ -344,7 +347,8 @@
       <hr class="stats-divider">
       <div class="stats-heading">品項總計</div>
       ${totalsHtml}
-      <button class="copy-btn" id="copy-btn" onclick="copyStats()">📋 複製結果</button>`;
+      <button class="copy-btn" id="copy-btn-summary" onclick="copyStats('summary')">📋 複製摘要（社群貼文用）</button>
+      <button class="copy-btn tsv" id="copy-btn-tsv" onclick="copyStats('tsv')">📊 複製表格（Excel / Google Sheets 用）</button>`;
 
     window._statsSubmissions = submissions;
     window._statsTotals = totals;
@@ -375,41 +379,78 @@
       </div>`;
     }
     const count = Object.keys(submissions).length;
-    body.innerHTML = `<div style="font-size:12px;color:#aaa;margin-bottom:6px">共 ${count} 人已點餐</div>${html}`;
+    window._liveSubmissions = submissions;
+    body.innerHTML = `
+      <div style="font-size:12px;color:#aaa;margin-bottom:6px">共 ${count} 人已點餐</div>
+      ${html}
+      <button class="copy-btn" id="live-copy-summary" onclick="copyLive('summary')" style="margin-top:10px">📋 複製摘要（社群貼文用）</button>
+      <button class="copy-btn tsv" id="live-copy-tsv" onclick="copyLive('tsv')">📊 複製表格（Excel / Google Sheets 用）</button>`;
   }
 
-  function buildStatsText() {
-    const submissions = window._statsSubmissions;
-    const totals = window._statsTotals;
+  function copyLive(mode) {
+    if (!window._liveSubmissions) return;
+    const text = mode === 'tsv'
+      ? buildTsvText(window._liveSubmissions)
+      : buildSummaryText(window._liveSubmissions);
+    const btnId = mode === 'tsv' ? 'live-copy-tsv' : 'live-copy-summary';
+    copyToClipboard(text, btnId);
+  }
+
+  function buildSummaryText(submissions) {
     if (!submissions) return '';
-    const { meta } = sessionData;
+    const title = sessionData?.meta?.title || '點餐';
     const count = Object.keys(submissions).length;
-    const lines = [`📋 ${meta.title || '點餐'} 結果`, `共 ${count} 人`, '──────────────────'];
+    const totals = {};
+    const lines = [`📋 ${title} 結果`, `共 ${count} 人`, '──────────────────'];
     for (const [name, data] of Object.entries(submissions)) {
-      const items = (data.orders || []).map(o => `${o.name}×${o.qty}`).join('、');
+      const orders = data.orders || [];
+      orders.forEach(o => { totals[o.name] = (totals[o.name] || 0) + o.qty; });
+      const items = orders.map(o => `${o.name}×${o.qty}`).join('、');
       let line = `${name}：${items}`;
       if (data.note) line += `  備註：${data.note}`;
       lines.push(line);
     }
     lines.push('──────────────────', '📊 品項統計');
-    for (const [name, qty] of Object.entries(totals)) {
-      lines.push(`${name}  × ${qty}`);
-    }
+    for (const [name, qty] of Object.entries(totals)) lines.push(`${name}  × ${qty}`);
     const total = Object.values(totals).reduce((a, b) => a + b, 0);
     lines.push('', `合計 ${total} 份`);
     return lines.join('\n');
   }
 
-  function copyStats() {
-    const text = buildStatsText();
+  function buildTsvText(submissions) {
+    if (!submissions) return '';
+    const lines = ['姓名\t品項\t數量\t備註'];
+    for (const [name, data] of Object.entries(submissions)) {
+      const orders = data.orders || [];
+      if (orders.length === 0) {
+        lines.push(`${name}\t\t\t${data.note || ''}`);
+      } else {
+        orders.forEach(o => {
+          lines.push(`${name}\t${o.name}\t${o.qty}\t${data.note || ''}`);
+        });
+      }
+    }
+    return lines.join('\n');
+  }
+
+  function copyToClipboard(text, btnId) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copy-btn');
+      const btn = document.getElementById(btnId);
       if (!btn) return;
+      const orig = btn.textContent;
       btn.textContent = '✅ 已複製';
       btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = '📋 複製結果'; btn.classList.remove('copied'); }, 2000);
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
     });
+  }
+
+  function copyStats(mode) {
+    const submissions = window._statsSubmissions;
+    if (!submissions) return;
+    const text = mode === 'tsv' ? buildTsvText(submissions) : buildSummaryText(submissions);
+    const btnId = mode === 'tsv' ? 'copy-btn-tsv' : 'copy-btn-summary';
+    copyToClipboard(text, btnId);
   }
 
   function setupNameField() {
