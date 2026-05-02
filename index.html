@@ -282,12 +282,20 @@
         </div>
         <button class="submit-btn" id="btn-submit" onclick="submitOrder()">送出訂單</button>
         <div id="msg-area"></div>
+        <div class="card" id="live-order-card" style="margin-top:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="stats-heading" style="margin:0">👀 目前訂單</div>
+            <button onclick="loadLiveOrders()" style="font-size:13px;color:#3b82f6;background:none;border:none;cursor:pointer;padding:4px 0">重新整理</button>
+          </div>
+          <div id="live-order-body" style="margin-top:10px;color:#888;font-size:13px;text-align:center">點「重新整理」載入</div>
+        </div>
       `;
     }
 
     setApp(html);
     setupNameField();
     if (isClosed) loadAndRenderStats();
+    else loadLiveOrders();
   }
 
   async function loadAndRenderStats() {
@@ -340,6 +348,34 @@
 
     window._statsSubmissions = submissions;
     window._statsTotals = totals;
+  }
+
+  async function loadLiveOrders() {
+    const body = document.getElementById('live-order-body');
+    if (!body) return;
+    body.textContent = '載入中…';
+    let submissions = null;
+    try {
+      const res = await fetch(`${DB_URL}/orders/${sessionId}/submissions.json`);
+      submissions = await res.json();
+    } catch (e) { body.textContent = '載入失敗'; return; }
+
+    if (!submissions || Object.keys(submissions).length === 0) {
+      body.textContent = '尚無人點餐';
+      return;
+    }
+
+    let html = '';
+    for (const [name, data] of Object.entries(submissions)) {
+      const items = (data.orders || []).map(o => `${o.name}×${o.qty}`).join('、');
+      html += `<div class="stats-person">
+        <div class="stats-person-name">${esc(name)}</div>
+        <div class="stats-person-items">${esc(items)}</div>
+        ${data.note ? `<div class="stats-person-note">備註：${esc(data.note)}</div>` : ''}
+      </div>`;
+    }
+    const count = Object.keys(submissions).length;
+    body.innerHTML = `<div style="font-size:12px;color:#aaa;margin-bottom:6px">共 ${count} 人已點餐</div>${html}`;
   }
 
   function buildStatsText() {
