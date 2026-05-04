@@ -526,11 +526,13 @@
     if (!ts) return null;
     const now = Math.floor(Date.now() / 1000);
     const d = new Date(ts * 1000);
+    const days = ['日','一','二','三','四','五','六'];
+    const dateStr = `${d.getMonth()+1}/${d.getDate()}（${days[d.getDay()]}）`;
     const timeStr = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
     if (now > ts) return { text: '已截止', cls: 'closed' };
     const left = ts - now;
-    if (left < 3600) return { text: `截止 ${timeStr}（剩 ${Math.ceil(left/60)} 分鐘）`, cls: 'urgent' };
-    return { text: `截止 ${timeStr}（剩 ${Math.floor(left/3600)} 時 ${Math.floor((left%3600)/60)} 分）`, cls: 'open' };
+    if (left < 3600) return { text: `截止 ${dateStr} ${timeStr}（剩 ${Math.ceil(left/60)} 分鐘）`, cls: 'urgent' };
+    return { text: `截止 ${dateStr} ${timeStr}（剩 ${Math.floor(left/3600)} 時 ${Math.floor((left%3600)/60)} 分）`, cls: 'open' };
   }
 
   function emptyState(icon, text) {
