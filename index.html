@@ -111,7 +111,7 @@
     try {
       // Fetch current session ID from Firebase config
       const [cfgRes, allRes] = await Promise.all([
-        fetch(`${DB_URL}/config/current_session.json`),
+        fetch(`${DB_URL}/orders/_current.json`),
         fetch(`${DB_URL}/orders.json?shallow=true`),
       ]);
       const currentId = await cfgRes.json();   // string or null
