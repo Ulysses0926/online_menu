@@ -368,24 +368,31 @@
     msg.innerHTML = '';
     document.getElementById('admin-body').style.display = 'block';
     document.getElementById('admin-pin').disabled = true;
-    // 預填現有截止時間
+    // 預填截止時間：若仍在未來用現有值；若已截止（無deadline或已過）預設未來1小時，方便重開
     const dl = sessionData?.meta?.deadline;
+    const nowSec = Math.floor(Date.now() / 1000);
     const inp = document.getElementById('admin-deadline');
-    const base = dl ? new Date(dl * 1000) : new Date(Date.now() + 3600000);
+    const base = (dl && dl > nowSec) ? new Date(dl * 1000) : new Date(Date.now() + 3600000);
     const pad = n => String(n).padStart(2, '0');
     inp.value = `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+    if (isClosed) msg.innerHTML = '<div class="msg info">此單已截止。存入未來時間即可重新開放。</div>';
   }
   async function adminSaveDeadline() {
     const inp = document.getElementById('admin-deadline');
     const msg = document.getElementById('admin-msg');
     if (!inp.value) { msg.innerHTML = '<div class="msg error">請選擇時間</div>'; return; }
     const ts = Math.floor(new Date(inp.value).getTime() / 1000);
+    if (ts <= Math.floor(Date.now() / 1000)) {
+      msg.innerHTML = '<div class="msg error">⚠️ 你選的時間已過，單會維持截止。要重新開放請選未來時間。</div>';
+      return;
+    }
     try {
       await fetch(`${DB_URL}/orders/${sessionId}/meta.json`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deadline: ts, status: 'open' }),
       });
-      msg.innerHTML = '<div class="msg success">✅ 截止時間已更新，2 秒後重新整理</div>';
+      const reopened = isClosed;
+      msg.innerHTML = `<div class="msg success">✅ ${reopened ? '已重新開放' : '截止時間已更新'}，2 秒後重新整理</div>`;
       setTimeout(() => location.reload(), 1800);
     } catch (e) { msg.innerHTML = '<div class="msg error">更新失敗，請重試</div>'; }
   }
