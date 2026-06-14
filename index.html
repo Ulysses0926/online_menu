@@ -320,6 +320,9 @@
             <input type="datetime-local" id="admin-deadline">
             <button class="submit-btn" style="margin-top:10px" onclick="adminSaveDeadline()">儲存截止時間</button>
             <button class="copy-btn" style="margin-top:8px;color:#d93025" onclick="adminCloseNow()">⛔ 立即截止</button>
+            <hr class="stats-divider">
+            <button class="copy-btn" style="background:#e3f5e9;color:#1a7f3c" onclick="adminNewOrder()">🆕 用同菜單新開一單</button>
+            <div style="font-size:12px;color:#aaa;margin-top:6px;line-height:1.5">建立全新點餐（複製目前菜單、訂單清空），<b>舊單紀錄保留</b>，並設為目前開放單。適合熱門店重開。</div>
           </div>
           <div id="admin-msg"></div>
         </div>
@@ -396,6 +399,32 @@
       setTimeout(() => location.reload(), 1800);
     } catch (e) { msg.innerHTML = '<div class="msg error">更新失敗，請重試</div>'; }
   }
+  async function adminNewOrder() {
+    if (!confirm('要用同一份菜單開一張全新的點餐嗎？\n舊單紀錄會保留，新單訂單從零開始。')) return;
+    const msg = document.getElementById('admin-msg');
+    const items = sessionData?.items;
+    if (!items) { msg.innerHTML = '<div class="msg error">找不到菜單，無法開新單</div>'; return; }
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const newId = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+    const nowSec = Math.floor(now.getTime() / 1000);
+    const newSession = {
+      meta: { title: sessionData.meta?.title || '點餐', deadline: nowSec + 7200, status: 'open', created_at: nowSec },
+      items,
+    };
+    msg.innerHTML = '<div class="msg info">建立中…</div>';
+    try {
+      await fetch(`${DB_URL}/orders/${newId}.json`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSession),
+      });
+      await fetch(`${DB_URL}/orders/_current.json`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newId),
+      });
+      msg.innerHTML = '<div class="msg success">✅ 已開新單（截止預設 2 小時後，可再調整），前往中…</div>';
+      setTimeout(() => { location.href = `/?s=${newId}`; }, 1100);
+    } catch (e) { msg.innerHTML = '<div class="msg error">開新單失敗，請重試</div>'; }
+  }
+
   async function adminCloseNow() {
     const msg = document.getElementById('admin-msg');
     try {
