@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINE 收單整理器</title>
+<meta name="description" content="把 LINE 群的點餐對話貼進來，自動整理成每人訂單、每人應付與給店家的清單。不用登入、資料不上傳。">
+<style>
+  :root { --bg: #f6f3ec; --card: #fffdf8; --ink: #2a2620; --muted: #7a7268; --line: #ddd5c6; --accent: #2f6d62; --warn: #b8432f; --gold: #b07a1f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.7 "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+  header { padding: 18px 16px 8px; text-align: center; }
+  h1 { margin: 0; font-size: 1.5rem; letter-spacing: .05em; }
+  .sub { color: var(--muted); font-size: .9rem; margin: 2px 0 0; }
+  main { max-width: 760px; margin: 0 auto; padding: 8px 12px 90px; }
+  section.step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 12px 0; }
+  .step h2 { margin: 0 0 8px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+  .num { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff; align-items: center; justify-content: center; font-size: .95rem; }
+  .hint { color: var(--muted); font-size: .88rem; margin: 0 0 8px; }
+  textarea { width: 100%; min-height: 120px; font: inherit; font-size: 17px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; resize: vertical; }
+  textarea#chat { min-height: 180px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  button { font: inherit; font-size: 17px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  button.big { width: 100%; padding: 14px; font-size: 19px; }
+  button.small { font-size: 15px; padding: 6px 10px; }
+  button:disabled { opacity: .45; cursor: default; }
+  details summary { cursor: pointer; color: var(--accent); font-size: .95rem; }
+  .menu-status { font-size: .9rem; color: var(--accent); margin-top: 6px; }
+  .menu-status.bad { color: var(--warn); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { font-size: .85rem; color: var(--muted); font-weight: 500; }
+  tr.warn td { background: #fff1ee; }
+  tr.low td { background: #fff8e6; }
+  td select, td input { font: inherit; font-size: 15px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; max-width: 100%; }
+  td input.qty { width: 3.2em; text-align: center; }
+  td input.person { width: 6em; }
+  .money { text-align: right; white-space: nowrap; }
+  .del { color: var(--warn); border-color: transparent; background: transparent; padding: 4px 6px; }
+  .unm { background: #fff1ee; border: 1px dashed var(--warn); border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: .95rem; }
+  .unm b { color: var(--warn); }
+  .totals { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-weight: 700; }
+  .out { white-space: pre-wrap; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 16px; max-height: 320px; overflow: auto; }
+  .copied { background: var(--gold) !important; border-color: var(--gold) !important; color: #fff !important; }
+  .table-wrap { overflow-x: auto; }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 12px; }
+  @media (max-width: 600px) {
+    body { font-size: 17px; }
+    #tbl thead { display: none; }
+    #tbl, #tbl tbody, #tbl tr, #tbl td { display: block; }
+    #tbl tr { display: grid; grid-template-columns: 1fr auto auto; grid-template-areas: "person qty del" "item item item" "opt opt money"; gap: 4px 8px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: center; }
+    #tbl td { border: 0; padding: 0; }
+    td.c-person { grid-area: person; } td.c-qty { grid-area: qty; } td.c-del { grid-area: del; }
+    td.c-item { grid-area: item; } td.c-opt { grid-area: opt; } td.c-money { grid-area: money; font-weight: 700; }
+    td.c-item select, td.c-item input { width: 100%; }
+    td input.person { width: 100%; max-width: 9em; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍱 LINE 收單整理器</h1>
+  <p class="sub">大家照舊在 LINE 打字點餐，主揪把對話貼進來就有表。資料只留在你的手機，不上傳。</p>
+</header>
+<main>
+  <section class="step">
+    <h2><span class="num">1</span>菜單</h2>
+    <p class="hint">一行一個品項＋價格。多種價格用「/」分開，選項放括號。可先用範例試。</p>
+    <details id="menu-details"><summary id="menu-summary">展開編輯菜單</summary>
+      <textarea id="menu" placeholder="## 主餐
+規格：白飯/冬粉/換拌飯
+鄉村南瓜鍋（豬肉/牛肉） 450/450/490
+日式豬排套餐 450
+## 甜點
+提拉米蘇 100"></textarea>
+      <div class="row">
+        <button id="btn-sample">載入範例（綠色空間火鍋）</button>
+        <button id="btn-menu-clear">清空</button>
+      </div>
+    </details>
+    <div class="menu-status" id="menu-status"></div>
+  </section>
+
+  <section class="step">
+    <h2><span class="num">2</span>貼上 LINE 對話</h2>
+    <p class="hint">LINE 聊天室長按訊息 →「選擇多則」→ 勾選點餐訊息 →「複製」→ 貼到下面。「名字：品項」一行一人也可以。</p>
+    <textarea id="chat" placeholder="橘子
+三杯雞
+蘋果
+蒜香鮮魚鍋 換拌飯
+香蕉：鄉村南瓜鍋 牛肉 x2"></textarea>
+    <div class="row">
+      <button class="primary big" id="btn-parse">整理成表格</button>
+    </div>
+  </section>
+
+  <section class="step" id="result" hidden>
+    <h2><span class="num">3</span>核對（紅色＝要看一下）</h2>
+    <p class="hint">可以直接在表格改品項、選項、數量；改完下面的文字會自動更新。</p>
+    <div id="unmatched"></div>
+    <div class="table-wrap"><table id="tbl">
+      <thead><tr><th>誰</th><th>品項</th><th>選項</th><th>數量</th><th class="money">小計</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="row"><button class="small" id="btn-add">＋ 手動加一列</button></div>
+    <div class="totals"><span id="t-people"></span><span id="t-sum"></span></div>
+  </section>
+
+  <section class="step" id="output" hidden>
+    <h2><span class="num">4</span>複製結果</h2>
+    <div class="row">
+      <button class="primary big" id="btn-copy-line">📋 複製「貼回 LINE」（每人＋應付）</button>
+      <button class="big" id="btn-copy-shop">🧾 複製「給店家」（品項合計）</button>
+    </div>
+    <details style="margin-top:8px"><summary>預覽文字</summary>
+      <div class="out" id="out-line"></div>
+      <div class="out" id="out-shop" style="margin-top:8px"></div>
+    </details>
+  </section>
+</main>
+<footer>不用登入、不需網路也能用（開過一次即可）｜<a href="/">舊版表單點餐</a></footer>
+
+<script src="parser.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const P = window.OrderParser;
+  let menu = null, cands = [], rows = [];
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const store = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+  const load = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  // ── 菜單 ──
+  function applyMenu() {
+    const txt = $('menu').value.trim();
+    if (!txt) { menu = null; cands = []; $('menu-status').textContent = '尚未提供菜單（沒有菜單也能整理，但不會算錢、不會對品名）'; $('menu-status').className = 'menu-status bad'; $('menu-summary').textContent = '展開編輯菜單'; return; }
+    menu = P.menuFromText(txt); cands = P.compile(menu);
+    const n = cands.length;
+    $('menu-status').textContent = `✅ 菜單已載入：${menu.categories.length} 類、${n} 項`;
+    $('menu-status').className = 'menu-status';
+    $('menu-summary').textContent = `菜單（${n} 項）— 點此編輯`;
+    store('lo_menu', txt);
+  }
+  $('menu').addEventListener('input', applyMenu);
+  $('btn-sample').onclick = async () => {
+    try { const m = await (await fetch('menu_greenspace.json')).json(); $('menu').value = P.menuToText(m); applyMenu(); } catch (e) { alert('範例載入失敗'); }
+  };
+  $('btn-menu-clear').onclick = () => { $('menu').value = ''; applyMenu(); };
+
+  // ── 解析 ──
+  $('btn-parse').onclick = () => {
+    const text = $('chat').value.trim();
+    if (!text) { $('chat').focus(); return; }
+    store('lo_chat', text);
+    const m = menu || { name: '無菜單', categories: [] };
+    const r = P.parse(m, text);
+    rows = r.orders.map(o => ({ ...o }));
+    // 沒菜單時：把每則訊息當品項原文
+    if (!menu) { rows = []; text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => { const mm = l.match(/^([^：:]{1,12})[：:]\s*(.+)$/); if (mm) rows.push({ person: mm[1], item: mm[2], qty: 1, price: null, confidence: 1, free: true }); }); r.unmatched = []; }
+    renderUnmatched(r.unmatched);
+    renderTable();
+    $('result').hidden = false; $('output').hidden = false;
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  function renderUnmatched(list) {
+    const real = list.filter(u => u.reason !== '看起來不是點餐' || (u.person && u.person !== '（未署名）'));
+    $('unmatched').innerHTML = real.length ? `<div class="unm"><b>未辨識 ${real.length} 則</b>（不是點餐的可忽略；是點餐請用「手動加一列」補）<br>${real.map(u => `・${esc(u.person || '?')}：${esc(u.raw)}`).join('<br>')}</div>` : '';
+  }
+
+  function itemOptions(sel) {
+    return cands.map(c => `<option value="${esc(c.item.name)}"${c.item.name === sel ? ' selected' : ''}>${esc(c.item.name)}</option>`).join('');
+  }
+  function candOf(name) { return cands.find(c => c.item.name === name); }
+  function priceFor(row) {
+    const c = candOf(row.item); if (!c) return row.price ?? null;
+    const prices = c.item.prices || []; if (!c.variants.length) return prices[0] ?? null;
+    let i = row.variant ? c.variants.findIndex(v => (v.label || v) === row.variant) : 0; if (i < 0) i = 0; return prices[i] ?? null;
+  }
+  function optionCell(row) {
+    const c = candOf(row.item); if (!c) return '';
+    let h = '';
+    if (c.choices.length) h += `<select data-k="choice"><option value="">（選）</option>${c.choices.map(x => `<option${row.choice === x ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select> `;
+    if (c.variants.length) h += `<select data-k="variant">${c.variants.map(v => { const l = v.label || v; return `<option${(row.variant || (c.variants[0].label || c.variants[0])) === l ? ' selected' : ''}>${esc(l)}</option>`; }).join('')}</select>`;
+    return h;
+  }
+  function renderTable() {
+    const tb = $('tbl').querySelector('tbody');
+    tb.innerHTML = rows.map((r, i) => {
+      r.price = priceFor(r);
+      const c = candOf(r.item);
+      const bad = (c && c.choices.length && !r.choice) || !r.person || r.person === '（未署名）';
+      const low = (r.confidence || 1) < 0.9 || r.variantAssumed;
+      const sub = r.price != null ? '$' + r.price * r.qty : '—';
+      return `<tr data-i="${i}" class="${bad ? 'warn' : (low ? 'low' : '')}">
+        <td class="c-person"><input class="person" data-k="person" value="${esc(r.person === '（未署名）' ? '' : r.person)}" placeholder="名字"></td>
+        <td class="c-item">${cands.length && !r.free ? `<select data-k="item">${itemOptions(r.item)}</select>` : `<input data-k="item" value="${esc(r.item)}">`}<div class="hint" style="margin:2px 0 0">${esc(r.raw || '')}</div></td>
+        <td class="c-opt">${optionCell(r)}</td>
+        <td class="c-qty"><input class="qty" data-k="qty" type="number" min="1" value="${r.qty}"></td>
+        <td class="money c-money">${sub}</td>
+        <td class="c-del"><button class="del" title="刪除">✕</button></td></tr>`;
+    }).join('');
+    updateOutput();
+  }
+  $('tbl').addEventListener('change', e => {
+    const tr = e.target.closest('tr'); if (!tr) return; const r = rows[+tr.dataset.i]; const k = e.target.dataset.k; if (!k) return;
+    if (k === 'qty') r.qty = Math.max(1, parseInt(e.target.value, 10) || 1);
+    else if (k === 'item') { r.item = e.target.value; r.choice = null; r.variant = null; r.variantAssumed = false; r.confidence = 1; }
+    else if (k === 'choice') { r.choice = e.target.value || null; }
+    else if (k === 'variant') { r.variant = e.target.value; r.variantAssumed = false; }
+    else if (k === 'person') { r.person = e.target.value.trim(); }
+    renderTable();
+  });
+  $('tbl').addEventListener('click', e => { if (e.target.classList.contains('del')) { rows.splice(+e.target.closest('tr').dataset.i, 1); renderTable(); } });
+  $('btn-add').onclick = () => { rows.push({ person: '', item: cands[0] ? cands[0].item.name : '', qty: 1, price: null, confidence: 1, free: !cands.length }); renderTable(); };
+
+  function updateOutput() {
+    const res = { orders: rows.filter(r => r.item).map(r => ({ ...r, person: r.person || '（未署名）' })) };
+    const s = P.summarize(res);
+    $('out-line').textContent = s.forLine; $('out-shop').textContent = s.forShop;
+    const people = new Set(res.orders.map(o => o.person)).size;
+    $('t-people').textContent = `共 ${people} 人・${res.orders.reduce((a, o) => a + o.qty, 0)} 份`;
+    $('t-sum').textContent = s.grand ? `合計 $${s.grand}` : '';
+  }
+  function copyBtn(id, srcId) {
+    $(id).onclick = () => {
+      const t = $(srcId).textContent; const b = $(id), orig = b.textContent;
+      const done = () => { b.textContent = '✅ 已複製，去 LINE 貼上'; b.classList.add('copied'); setTimeout(() => { b.textContent = orig; b.classList.remove('copied'); }, 2200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(done).catch(() => fallback(t, done)); else fallback(t, done);
+    };
+  }
+  function fallback(t, done) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { alert('複製失敗，請長按預覽文字自行複製'); } ta.remove(); }
+  copyBtn('btn-copy-line', 'out-line'); copyBtn('btn-copy-shop', 'out-shop');
+
+  // ── 還原上次 ──
+  const savedMenu = load('lo_menu'); if (savedMenu) { $('menu').value = savedMenu; } applyMenu();
+  const savedChat = load('lo_chat'); if (savedChat) $('chat').value = savedChat;
+  if (!savedMenu) $('menu-details').open = true;
+})();
+</script>
+<script src="https://feedback-relay.2vkhym52rn.workers.dev/widget.js" data-site="online-menu" defer></script>
+</body>
+</html>

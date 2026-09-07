@@ -1,0 +1,46 @@
+{
+  "name": "綠色空間 GREEN SPACE",
+  "categories": [
+    {"name": "風味火鍋", "variants": [{"label": "白飯", "aliases": ["飯"]}, {"label": "冬粉"}, {"label": "換拌飯", "aliases": ["拌飯", "豬油拌飯"]}],
+     "items": [
+      {"name": "紅燒甘蔗牛肉鍋", "aliases": ["甘蔗牛肉鍋", "紅燒牛肉鍋"], "prices": [530, 530, 570]},
+      {"name": "梅嶺梅子雞鍋", "aliases": ["梅子雞鍋", "梅子鍋"], "prices": [450, 450, 490]},
+      {"name": "蒜香鮮魚鍋", "aliases": ["鮮魚鍋", "蒜香魚鍋"], "prices": [450, 450, 490]},
+      {"name": "鄉村南瓜鍋", "aliases": ["南瓜鍋"], "prices": [450, 450, 490], "choices": ["豬肉", "牛肉"]},
+      {"name": "高鈣牛奶鍋", "aliases": ["牛奶鍋"], "prices": [430, 430, 470], "choices": ["豬肉", "牛肉"]},
+      {"name": "酸白菜鍋", "aliases": ["酸菜鍋"], "prices": [430, 430, 470], "choices": ["豬肉", "牛肉"]},
+      {"name": "咖哩鍋", "prices": [430, 430, 470], "choices": ["豬肉", "牛肉"]},
+      {"name": "泰式酸辣鍋", "aliases": ["酸辣鍋"], "prices": [430, 430, 470], "choices": ["豬肉", "牛肉"]},
+      {"name": "番茄鍋", "aliases": ["蕃茄鍋"], "prices": [430, 430, 470], "choices": ["豬肉", "牛肉", "素食"]},
+      {"name": "素食養生鍋", "aliases": ["養生鍋", "素鍋"], "prices": [430, 430, null]}
+     ]},
+    {"name": "主題套餐", "items": [
+      {"name": "香桂蜜汁雞", "aliases": ["蜜汁雞"], "prices": [450]},
+      {"name": "杏鮑菇三杯雞", "aliases": ["三杯雞"], "prices": [450]},
+      {"name": "越式檸檬香茅魚", "aliases": ["香茅魚", "檸檬魚"], "prices": [450]},
+      {"name": "菠蘿糖醋", "aliases": ["糖醋"], "prices": [450], "choices": ["魚", "雞"]},
+      {"name": "酒釀豆瓣鮮魚", "aliases": ["豆瓣魚", "豆瓣鮮魚"], "prices": [450]},
+      {"name": "日式豬排套餐", "aliases": ["豬排", "日式豬排"], "prices": [450]},
+      {"name": "起司豬排套餐", "aliases": ["起司豬排"], "prices": [480]},
+      {"name": "蘋果燉牛肉", "aliases": ["燉牛肉"], "prices": [530]}
+    ]},
+    {"name": "火鍋加點區", "items": [
+      {"name": "綜合菜盤", "aliases": ["菜盤"], "prices": [200]}, {"name": "雪花豬肉片", "aliases": ["豬肉片"], "prices": [180]},
+      {"name": "霜降牛肉片", "aliases": ["牛肉片"], "prices": [180]}, {"name": "時令青菜", "aliases": ["青菜"], "prices": [100]},
+      {"name": "白飯", "prices": [15]}, {"name": "冬粉", "prices": [15]}, {"name": "豬油拌飯", "prices": [50]}
+    ]},
+    {"name": "甜點區", "variants": [{"label": "單點"}, {"label": "下午茶"}], "items": [
+      {"name": "提拉米蘇", "prices": [100, 200]}, {"name": "輕乳酪起司", "aliases": ["輕乳酪", "乳酪蛋糕"], "prices": [100, 200]},
+      {"name": "烤布蕾", "aliases": ["布蕾"], "prices": [120, 220]}, {"name": "核桃布朗尼", "aliases": ["布朗尼"], "prices": [120, 220]},
+      {"name": "檸檬塔", "prices": [120, 220]}
+    ]},
+    {"name": "帕瑪森起司軟法", "variants": [{"label": "單點"}, {"label": "下午茶"}], "items": [
+      {"name": "越式雷夢雞", "aliases": ["雷夢雞", "檸檬雞軟法"], "prices": [150, 250]}, {"name": "台式三杯雞軟法", "aliases": ["三杯雞軟法"], "prices": [150, 250]}
+    ]},
+    {"name": "健康輕食", "items": [{"name": "水果優格", "aliases": ["優格"], "prices": [200]}]},
+    {"name": "炸物", "items": [
+      {"name": "薯條", "prices": [180]}, {"name": "雞米花", "prices": [180]}, {"name": "魷魚花", "prices": [180]},
+      {"name": "麥克雞塊", "aliases": ["雞塊"], "prices": [180]}, {"name": "越式炸豆腐", "aliases": ["炸豆腐"], "prices": [180]}
+    ]}
+  ]
+}
