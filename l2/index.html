@@ -234,8 +234,14 @@
   function fallback(t, done) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { alert('複製失敗，請長按預覽文字自行複製'); } ta.remove(); }
   copyBtn('btn-copy-line', 'out-line'); copyBtn('btn-copy-shop', 'out-shop');
 
-  // ── 還原上次 ──
-  const savedMenu = load('lo_menu'); if (savedMenu) { $('menu').value = savedMenu; } applyMenu();
+  // ── 網址帶菜單（#m=base64url(utf8)）：Claude 幫忙 OCR 後給的連結，一開就載入 ──
+  function menuFromHash() {
+    const h = location.hash.match(/[#&]m=([^&]+)/); if (!h) return null;
+    try { const b64 = h[1].replace(/-/g, '+').replace(/_/g, '/'); return decodeURIComponent(escape(atob(b64))); } catch (e) { return null; }
+  }
+  const hashMenu = menuFromHash();
+  const savedMenu = hashMenu || load('lo_menu'); if (savedMenu) { $('menu').value = savedMenu; } applyMenu();
+  if (hashMenu) { $('menu-status').textContent += '（由連結載入，已存在手機）'; history.replaceState(null, '', location.pathname); }
   const savedChat = load('lo_chat'); if (savedChat) $('chat').value = savedChat;
   if (!savedMenu) $('menu-details').open = true;
 })();
